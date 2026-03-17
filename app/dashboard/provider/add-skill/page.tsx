@@ -5,7 +5,7 @@ import {
   ArrowLeft, ArrowRight, Sparkles, IndianRupee, 
   Loader2, CheckCircle2 
 } from 'lucide-react';
-import api from '@/lib/api';
+import { skillService } from '@/services/skillService';
 
 export default function FullPageAddSkill() {
   const router = useRouter();
@@ -26,11 +26,16 @@ export default function FullPageAddSkill() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      await api.post('/skills', { ...formData, price: Number(formData.price) });
+      // Logic handled by the external service
+      await skillService.createSkill({ 
+        ...formData, 
+        price: Number(formData.price) 
+      });
+      
       setSuccess(true);
       setTimeout(() => router.push('/dashboard/provider'), 2000);
-    } catch (err) {
-      alert("Failed to post skill.");
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to post skill. Please check your connection.");
     } finally {
       setLoading(false);
     }
@@ -52,7 +57,7 @@ export default function FullPageAddSkill() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Top Progress Bar (Stretches full width) */}
+      {/* Top Progress Bar */}
       <div className="w-full h-1.5 bg-slate-100">
         <div 
           className="h-full bg-blue-600 transition-all duration-500 ease-in-out" 
@@ -85,7 +90,7 @@ export default function FullPageAddSkill() {
           </div>
         </div>
 
-        {/* Right Side: Form (Uses all remaining space) */}
+        {/* Right Side: Form Content */}
         <div className="flex-1 p-12 lg:p-20 flex flex-col justify-center max-w-4xl">
           <div className="w-full">
             {step === 1 && (
@@ -112,6 +117,8 @@ export default function FullPageAddSkill() {
                     <option value="cleaning">Cleaning</option>
                     <option value="programming">Programming</option>
                     <option value="design">Design</option>
+                    <option value="tutoring">Tutoring</option>
+                    <option value="plumbing">Plumbing</option>
                   </select>
                 </div>
               </div>
@@ -120,7 +127,7 @@ export default function FullPageAddSkill() {
             {step === 2 && (
               <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
                 <div className="space-y-2">
-                  <label className="text-sm font-black text-slate-900 uppercase">Hourly/Base Price (NPR)</label>
+                  <label className="text-sm font-black text-slate-900 uppercase">Base Price (NPR)</label>
                   <div className="relative">
                     <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xl">₹</span>
                     <input 
@@ -161,15 +168,19 @@ export default function FullPageAddSkill() {
             <div className="mt-16 flex items-center gap-6">
               <button 
                 onClick={step === 3 ? handleSubmit : nextStep} 
-                disabled={loading || (step === 1 && !formData.title) || (step === 2 && !formData.price)}
+                disabled={loading || (step === 1 && (!formData.title || !formData.category)) || (step === 2 && (!formData.price || !formData.description))}
                 className="px-10 py-5 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all flex items-center gap-3 shadow-2xl shadow-slate-200 disabled:opacity-30"
               >
                 {loading ? <Loader2 className="animate-spin" /> : step === 3 ? 'Publish Service' : 'Next Step'}
-                <ArrowRight size={20} />
+                {!loading && <ArrowRight size={20} />}
               </button>
               
               {step > 1 && (
-                <button onClick={prevStep} className="text-slate-400 font-bold hover:text-slate-900 transition-colors">
+                <button 
+                  type="button"
+                  onClick={prevStep} 
+                  className="text-slate-400 font-bold hover:text-slate-900 transition-colors"
+                >
                   Go Back
                 </button>
               )}
@@ -185,7 +196,7 @@ function SummaryBlock({ label, value }: { label: string, value: string }) {
   return (
     <div className="border-b border-slate-100 pb-4">
       <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-      <p className="text-xl font-bold text-slate-900">{value || "—"}</p>
+      <p className="text-xl font-bold text-slate-900 break-words">{value || "—"}</p>
     </div>
   );
 }
