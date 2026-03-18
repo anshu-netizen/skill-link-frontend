@@ -1,178 +1,201 @@
 "use client";
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { 
-  ShoppingBag, IndianRupee, Clock, Loader2, 
-  ArrowRight, AlertCircle, CheckCircle2, Star 
+  Search, Filter, SlidersHorizontal, ArrowRight, 
+  MapPin, Star, ShieldCheck, Zap, Globe, Heart 
 } from 'lucide-react';
+import { skillService } from '@/services/skillService';
 import Link from 'next/link';
-import { bookingService } from '@/services/bookingService';
 
-export default function SeekerDashboard() {
-  const router = useRouter();
-  const [requests, setRequests] = useState<any[]>([]);
+// 1. Define the Interface to fix the "type never" error
+interface SkillData {
+  _id: string;
+  provider: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  title: string;
+  description: string;
+  category: string;
+  price: number;
+  images: string[];
+  location: string;
+  tags: string[];
+  availability: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export default function ExplorePage() {
+  // 2. Explicitly type the state
+  const [skills, setSkills] = useState<SkillData[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-
-    if (!savedUser || !token) {
-      router.push('/login');
-      return;
-    }
-    setUser(JSON.parse(savedUser));
-
-    const loadSeekerData = async () => {
+    const loadSkills = async () => {
       try {
-        const data = await bookingService.getMyRequests();
-        setRequests(data);
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Could not load your bookings.");
+        const data = await skillService.getAllSkills();
+        setSkills(data);
+      } catch (error) {
+        console.error("Failed to load skills:", error);
       } finally {
         setLoading(false);
       }
     };
+    loadSkills();
+  }, []);
 
-    loadSeekerData();
-  }, [router]);
-
-  // Derived Stats
-  const activeBookings = requests.filter(r => r.status === 'pending' || r.status === 'accepted').length;
-  const totalSpent = requests.reduce((acc, curr) => acc + curr.totalPrice, 0);
-
-  if (loading) return (
-    <div className="h-screen flex items-center justify-center bg-slate-50">
-      <Loader2 className="animate-spin text-blue-600" size={32} />
-    </div>
+  // 3. Filter logic using the typed data
+  const filteredSkills = skills.filter(skill => 
+    skill.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    skill.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (skill.location && skill.location.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-2xl flex items-center gap-2">
-          <AlertCircle size={18} /> {error}
-        </div>
-      )}
-
-      <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-            Hi, {user?.name?.split(' ')[0] || 'Seeker'} 👋
+    <div className="w-full bg-white min-h-screen font-sans">
+      {/* --- HERO SECTION --- */}
+      <div className="bg-[#003580] pt-16 pb-24 px-6 lg:px-12">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-white text-5xl font-black mb-4 tracking-tight">
+            Find your next expert
           </h1>
-          <p className="text-slate-500 font-medium">Track your service requests and find new experts.</p>
-        </div>
-        <Link href="/dashboard/seeker/marketplace" className="bg-blue-600 text-white px-6 py-4 rounded-2xl font-bold flex items-center gap-2 hover:shadow-lg transition-all active:scale-95">
-          <ShoppingBag size={20} /> Browse All Skills
-        </Link>
-      </header>
+          <p className="text-blue-100 text-xl font-medium mb-10">
+            Search deals on professional services, experts, and much more...
+          </p>
 
-      {/* Stats Section - Same as Provider Design */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <StatCard 
-            label="Total Bookings" 
-            val={requests.length.toString()} 
-            icon={<ShoppingBag size={20} />} 
-            color="text-blue-600" 
-            bg="bg-blue-50" 
-        />
-        <StatCard 
-            label="In Progress" 
-            val={activeBookings.toString()} 
-            icon={<Clock size={20} />} 
-            color="text-amber-600" 
-            bg="bg-amber-50" 
-        />
-        <StatCard 
-            label="Total Spent" 
-            val={`₹${totalSpent}`} 
-            icon={<IndianRupee size={20} />} 
-            color="text-emerald-600" 
-            bg="bg-emerald-50" 
-        />
+          {/* --- SEARCH BAR --- */}
+          <div className="relative max-w-5xl">
+            <div className="flex flex-col md:flex-row bg-[#ffb700] p-1 rounded-lg shadow-xl">
+              <div className="flex-1 bg-white rounded-md flex items-center px-4 py-3 m-0.5 border-2 border-transparent focus-within:border-orange-500">
+                <Search className="text-slate-400 mr-3" size={20} />
+                <input 
+                  type="text"
+                  placeholder="Search skills, categories, or locations..."
+                  className="w-full outline-none text-slate-900 font-semibold"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <button className="bg-[#006ce4] text-white px-10 py-3 m-0.5 rounded-md font-bold text-xl hover:bg-[#0052ad] transition-colors shadow-lg">
+                Search
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Requests List */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-slate-800">Recent Requests</h2>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">History</p>
+      {/* --- VALUE PROPS --- */}
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 -mt-10 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <ValueCard icon={<ShieldCheck className="text-blue-600" />} title="Secure Payments" desc="Pay only when the job is done" />
+          <ValueCard icon={<Zap className="text-orange-500" />} title="Instant Booking" desc="1-hour buffer protection" />
+          <ValueCard icon={<Globe className="text-emerald-500" />} title="Verified Pros" desc="Background checked experts" />
+          <ValueCard icon={<Heart className="text-pink-500" />} title="24/7 Support" desc="We are always here to help" />
+        </div>
+      </div>
+
+      {/* --- SKILLS GRID --- */}
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 pb-20">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Featured Experts</h2>
+          <div className="flex items-center gap-4 text-slate-500 font-bold text-sm">
+            <span>{filteredSkills.length} results</span>
+            <button className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+              <SlidersHorizontal size={18} />
+            </button>
           </div>
-          
-          {requests.length > 0 ? (
-            <div className="grid gap-4">
-              {requests.map(req => (
-                <div key={req._id} className="bg-white border border-slate-200 p-5 rounded-3xl flex items-center justify-between hover:border-blue-300 transition-all group shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-slate-50 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 rounded-xl flex items-center justify-center font-bold uppercase text-xs transition-colors">
-                      {req.skill?.category?.substring(0, 2) || 'S'}
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} className="h-80 bg-slate-100 animate-pulse rounded-xl" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredSkills.map((skill) => (
+              <div key={skill._id} className="group flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+                
+                {/* IMAGE COMPONENT */}
+                <div className="relative h-52 w-full overflow-hidden bg-slate-100">
+                  {skill.images && skill.images.length > 0 ? (
+                    <img 
+                      src={skill.images[0]} 
+                      alt={skill.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400 text-3xl font-black italic">
+                      {skill.category.substring(0, 2)}
                     </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900">{req.skill?.title}</h3>
-                      <p className="text-xs font-bold text-slate-500">
-                        Provider: <span className="text-slate-900">{req.provider?.name}</span> • <span className="uppercase">{req.status}</span>
-                      </p>
+                  )}
+                  
+                  {/* Floating Category Badge */}
+                  <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-[#006ce4] shadow-sm border border-blue-50">
+                    {skill.category}
+                  </div>
+
+                  {/* Availability Badge */}
+                  <div className={`absolute top-3 right-3 px-2 py-1 rounded-md text-[9px] font-bold text-white shadow-sm ${skill.availability === 'Available' ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                    {skill.availability}
+                  </div>
+
+                  {/* Location Badge */}
+                  {skill.location && (
+                    <div className="absolute bottom-3 left-3 flex items-center bg-black/40 backdrop-blur-md px-2 py-1 rounded-md text-white text-[10px] font-bold border border-white/20">
+                      <MapPin size={10} className="mr-1" /> {skill.location}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="p-5 flex flex-col flex-1">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-bold text-slate-900 text-lg leading-tight group-hover:text-[#006ce4] transition-colors line-clamp-1">
+                      {skill.title}
+                    </h3>
+                    <div className="flex items-center text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-100 shrink-0 ml-2">
+                      <Star size={12} fill="currentColor" className="mr-1" /> 4.9
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-6">
-                     <div className="text-right hidden sm:block">
-                        <p className="text-lg font-black text-slate-900">₹{req.totalPrice}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">{new Date(req.createdAt).toLocaleDateString()}</p>
-                     </div>
-                     <ArrowRight size={18} className="text-slate-300 group-hover:text-blue-600 transition-colors" />
+                  <p className="text-slate-500 text-sm line-clamp-2 mb-6 font-medium leading-relaxed">
+                    {skill.description}
+                  </p>
+
+                  <div className="mt-auto pt-4 flex items-center justify-between border-t border-slate-100">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Starting from</p>
+                      <p className="text-2xl font-black text-slate-900">₹{skill.price}</p>
+                    </div>
+                    <Link 
+                      href={`/dashboard/seeker/skills/${skill._id}`} 
+                      className="bg-[#006ce4] text-white flex items-center justify-center w-12 h-12 rounded-xl hover:bg-[#0052ad] hover:shadow-lg hover:rotate-6 transition-all duration-300"
+                    >
+                      <ArrowRight size={22} />
+                    </Link>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20 bg-white border-2 border-dashed border-slate-200 rounded-[2.5rem] text-slate-400 font-medium">
-              You haven't hired anyone yet. <br/>
-              <Link href="/dashboard/seeker/marketplace" className="text-blue-600 font-bold hover:underline">Explore the marketplace</Link>
-            </div>
-          )}
-        </div>
-        
-        {/* Side Panel */}
-        <div className="space-y-6">
-          <div className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200">
-              <h3 className="font-bold mb-6 text-xs uppercase tracking-widest text-slate-400">Account Safety</h3>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center">
-                    <CheckCircle2 size={20} />
-                </div>
-                <p className="font-bold">Verified Buyer</p>
               </div>
-              <p className="text-slate-400 text-xs leading-relaxed">
-                Your payments are held in escrow and only released to providers once you mark a job as completed.
-              </p>
+            ))}
           </div>
-
-          <div className="bg-white border border-slate-200 p-6 rounded-[2.5rem]">
-              <h3 className="font-bold text-slate-900 mb-4">Leave Feedback</h3>
-              <p className="text-sm text-slate-500 mb-4">Help the community by reviewing your providers after a job.</p>
-              <div className="flex gap-1 text-amber-400">
-                {[1,2,3,4,5].map(i => <Star key={i} size={16} fill="currentColor" />)}
-              </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-// Reusable StatCard (Move this to a separate component file later to keep it DRY)
-function StatCard({ label, val, icon, color, bg }: any) {
+function ValueCard({ icon, title, desc }: { icon: any, title: string, desc: string }) {
   return (
-    <div className="bg-white p-6 rounded-[2rem] border border-slate-200 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col items-start gap-3 hover:shadow-md transition-all group">
+      <div className="p-3 bg-slate-50 rounded-2xl group-hover:bg-blue-50 transition-colors">{icon}</div>
       <div>
-        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{label}</p>
-        <p className="text-3xl font-black text-slate-900 mt-1">{val}</p>
+        <h4 className="font-bold text-slate-900 text-sm leading-tight">{title}</h4>
+        <p className="text-slate-500 text-[11px] font-medium mt-1 leading-relaxed">{desc}</p>
       </div>
-      <div className={`p-4 rounded-2xl ${bg} ${color}`}>{icon}</div>
     </div>
   );
 }
