@@ -26,7 +26,7 @@ export default function Sidebar({ user, handleLogout }: { user: any; handleLogou
   const seekerNav = [
     { label: 'Explore', icon: <Search size={20} />, href: '/dashboard/seeker' },
     { label: 'Marketplace', icon: <Search size={20} />, href: '/dashboard/seeker/marketplace' },
-    { label: 'My Requests', icon: <ShoppingBag size={20} />, href: '/dashboard/seeker/requests' },
+    { label: 'My Bookings', icon: <ShoppingBag size={20} />, href: '/dashboard/seeker/bookings' },
     { label: 'Profile', icon: <UserCircle size={20} />, href: '/dashboard/seeker/profile' },
   ];
 

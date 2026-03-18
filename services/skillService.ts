@@ -1,21 +1,24 @@
 import api from '@/lib/api';
 
 /**
- * SkillService handles all communication with the /api/skills endpoints.
- * It automatically uses the Bearer token configured in your Axios instance.
+ * SkillData remains for cases where you might need 
+ * to type the response or simple updates.
  */
-
 export interface SkillData {
+  _id?: string;
   title: string;
   description: string;
   category: string;
   price: number;
+  location?: string;
+  tags?: string[];
+  images?: string[];
   availability?: string;
 }
 
 export const skillService = {
   
-  // 1. Fetch only skills belonging to the logged-in user (Anshu Dalal)
+  // 1. Fetch only skills belonging to the logged-in user
   getMySkills: async () => {
     const response = await api.get('/skills/my-skills');
     return response.data;
@@ -33,19 +36,27 @@ export const skillService = {
     return response.data;
   },
 
-  // 4. Create a new skill (Used by your FullPageAddSkill component)
-  createSkill: async (skillData: SkillData) => {
-    const response = await api.post('/skills', skillData);
+  /**
+   * 4. Create a new skill
+   * Updated to accept FormData to support image uploads.
+   * Axios will automatically set the correct 'Content-Type' header.
+   */
+  createSkill: async (skillData: FormData) => {
+    const response = await api.post('/skills', skillData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 
-  // 5. Update an existing skill (Update price, description, or title)
+  // 5. Update an existing skill
   updateSkill: async (id: string, updateData: Partial<SkillData>) => {
     const response = await api.patch(`/skills/${id}`, updateData);
     return response.data;
   },
 
-  // 6. Toggle availability status (e.g., "Available" vs "Busy")
+  // 6. Toggle availability status
   toggleStatus: async (id: string, status: 'Available' | 'Busy') => {
     const response = await api.patch(`/skills/${id}/status`, { availability: status });
     return response.data;
