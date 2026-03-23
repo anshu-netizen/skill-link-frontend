@@ -63,7 +63,7 @@ export default function ExplorePage() {
 
       <div className="max-w-7xl mx-auto px-6 lg:px-12 pb-20">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Highest Rated Experts</h2>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Explore Our Experts</h2>
           <div className="flex items-center gap-4 text-slate-500 font-bold text-sm">
             <span>{filteredSkills.length} results</span>
             <button className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"><SlidersHorizontal size={18} /></button>

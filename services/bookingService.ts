@@ -43,8 +43,15 @@ export const bookingService = {
     const res = await api.patch(`/bookings/${id}/cancel`);
     return res.data;
   },
-  submitReview: async (reviewData: { bookingId: string, rating: number, comment: string }) => {
-    const response = await api.post('/bookings/reviews', reviewData);
-    return response.data;
+  submitReview: async (reviewData: { bookingId: string; rating: number; comment: string }) => {
+    // Note: If your axios 'api' base is /api, the path is just '/bookings/reviews'
+    const res = await api.post('/bookings/reviews', reviewData);
+    return res.data;
+  },
+
+  // GET: {{baseUrl}}/api/bookings/reviews/provider/:providerId
+  getProviderReviews: async (providerId: string) => {
+    const res = await api.get(`/bookings/reviews/provider/${providerId}`);
+    return res.data;
   }
 };

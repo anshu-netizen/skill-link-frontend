@@ -1,9 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { 
-  Clock, CheckCircle2, XCircle, Calendar, 
-  MapPin, Briefcase, History as HistoryIcon,
-  Search, Mail, Trash2, ExternalLink, Star, X
+  Calendar, MapPin, Briefcase, History as HistoryIcon,
+  Search, Trash2, ExternalLink, Star, X
 } from 'lucide-react';
 import { bookingService } from '@/services/bookingService';
 import Link from 'next/link';
@@ -18,7 +17,7 @@ export default function MyBookingsPage() {
     setLoading(true);
     try {
       const data = await bookingService.getMyRequests();
-      setBookings(data);
+      setBookings(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to load bookings", err);
     } finally {
@@ -31,8 +30,8 @@ export default function MyBookingsPage() {
   }, []);
 
   const filteredBySearch = bookings.filter(b => 
-    b.skill.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.provider.name.toLowerCase().includes(searchQuery.toLowerCase())
+    b.skill?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    b.provider?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const ongoingBookings = filteredBySearch.filter(b => ['pending', 'accepted'].includes(b.status));
@@ -42,7 +41,6 @@ export default function MyBookingsPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20 font-sans">
-      {/* --- BLUE HEADER --- */}
       <div className="bg-[#003580] pt-12 pb-24 px-6">
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
@@ -64,7 +62,6 @@ export default function MyBookingsPage() {
       </div>
 
       <div className="max-w-[1400px] mx-auto px-6 -mt-12">
-        {/* --- TABS --- */}
         <div className="flex bg-white p-1.5 rounded-[2rem] shadow-2xl mb-10 w-fit border border-slate-100">
           <button 
             onClick={() => setActiveTab('ongoing')}
@@ -84,7 +81,6 @@ export default function MyBookingsPage() {
           </button>
         </div>
 
-        {/* --- LIST --- */}
         {loading ? (
           <div className="space-y-6">
             {[1, 2].map(i => <div key={i} className="h-44 bg-white border border-slate-200 animate-pulse rounded-[2.5rem]" />)}
@@ -119,21 +115,12 @@ function BookingCard({ booking, onRefresh }: { booking: any, onRefresh: () => vo
     cancelled: "bg-red-50 text-red-700 border-red-100",
   };
 
-  const handleCancel = async () => {
-    if (!confirm("Cancel this request?")) return;
-    setIsActionLoading(true);
-    try {
-      await bookingService.cancelBooking(booking._id);
-      onRefresh();
-    } catch (err) {
-      alert("Error cancelling booking.");
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
+  // Logic to check if review exists (handles both populated object or ID string)
+  const hasReview = booking.review && (typeof booking.review === 'object' || typeof booking.review === 'string');
 
   const handleSubmitReview = async () => {
     if (!comment.trim()) return alert("Please add a comment.");
+    
     setIsActionLoading(true);
     try {
       await bookingService.submitReview({
@@ -142,9 +129,13 @@ function BookingCard({ booking, onRefresh }: { booking: any, onRefresh: () => vo
         comment
       });
       setShowReviewForm(false);
-      onRefresh();
-    } catch (err) {
-      alert("Failed to submit review.");
+      alert("Review submitted!");
+      onRefresh(); 
+    } catch (err: any) {
+      // Improved error logging for the 400 error
+      const message = err.response?.data?.message || "Failed to submit review.";
+      alert(`Error: ${message}`);
+      console.error("Submission error details:", err.response?.data);
     } finally {
       setIsActionLoading(false);
     }
@@ -155,13 +146,13 @@ function BookingCard({ booking, onRefresh }: { booking: any, onRefresh: () => vo
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
         
         <div className="flex items-start gap-6">
-          <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center text-blue-600 font-black text-3xl border border-slate-100">
-            {booking.skill.title.charAt(0)}
+          <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center text-blue-600 font-black text-3xl border border-slate-100 uppercase">
+            {booking.skill?.title?.charAt(0) || "S"}
           </div>
           
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <h3 className="font-black text-slate-900 text-2xl tracking-tight">{booking.skill.title}</h3>
+              <h3 className="font-black text-slate-900 text-2xl tracking-tight">{booking.skill?.title}</h3>
               <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${statusStyles[booking.status]}`}>
                 {booking.status}
               </span>
@@ -173,10 +164,10 @@ function BookingCard({ booking, onRefresh }: { booking: any, onRefresh: () => vo
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-[10px] text-white font-bold">
-                {booking.provider.name.charAt(0)}
+              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-[10px] text-white font-bold uppercase">
+                {booking.provider?.name?.charAt(0) || "P"}
               </div>
-              <p className="text-xs font-bold text-slate-400 uppercase">Provider: <span className="text-slate-700">{booking.provider.name}</span></p>
+              <p className="text-xs font-bold text-slate-400 uppercase">Provider: <span className="text-slate-700">{booking.provider?.name}</span></p>
             </div>
           </div>
         </div>
@@ -188,31 +179,24 @@ function BookingCard({ booking, onRefresh }: { booking: any, onRefresh: () => vo
           </div>
 
           <div className="flex gap-2">
-            {booking.status === 'completed' && !booking.review && !showReviewForm && (
+            {booking.status === 'completed' && !hasReview && !showReviewForm && (
               <button 
                 onClick={() => setShowReviewForm(true)}
-                className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-blue-700 shadow-lg shadow-blue-100"
+                className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-blue-700 shadow-lg"
               >
                 Rate Service
               </button>
             )}
 
-            {booking.status === 'pending' && (
-              <button onClick={handleCancel} className="p-3 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all">
-                <Trash2 size={20} />
-              </button>
-            )}
-
-            <Link href={`/dashboard/seeker/skills/${booking.skill._id}`} className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-blue-600 transition-all">
+            <Link href={`/dashboard/seeker/skills/${booking.skill?._id}`} className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-blue-600 transition-all">
               <ExternalLink size={20} />
             </Link>
           </div>
         </div>
       </div>
 
-      {/* --- REVIEW FORM --- */}
       {showReviewForm && (
-        <div className="mt-8 pt-8 border-t border-slate-100 animate-in fade-in duration-300">
+        <div className="mt-8 pt-8 border-t border-slate-100">
           <div className="flex items-center justify-between mb-4">
             <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">Share your feedback</h4>
             <button onClick={() => setShowReviewForm(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
@@ -228,7 +212,7 @@ function BookingCard({ booking, onRefresh }: { booking: any, onRefresh: () => vo
 
           <textarea 
             className="w-full p-5 bg-slate-50 border border-slate-100 rounded-3xl outline-none focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all text-slate-700 font-medium mb-4"
-            placeholder="How was Anshu's work?"
+            placeholder={`How was ${booking.provider?.name}'s work?`}
             rows={3}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
@@ -245,12 +229,18 @@ function BookingCard({ booking, onRefresh }: { booking: any, onRefresh: () => vo
       )}
 
       {/* --- DISPLAY EXISTING REVIEW --- */}
-      {booking.review && (
-        <div className="mt-6 p-6 bg-slate-50 rounded-3xl border border-slate-100">
+      {booking.review && typeof booking.review === 'object' && (
+        <div className="mt-6 p-6 bg-slate-50 rounded-3xl border border-slate-100 animate-in fade-in slide-in-from-top-2">
           <div className="flex text-amber-400 mb-2">
-            {[...Array(5)].map((_, i) => <Star key={i} size={14} fill={i < booking.review.rating ? "currentColor" : "none"} />)}
+            {[...Array(5)].map((_, i) => (
+                <Star 
+                    key={i} 
+                    size={14} 
+                    fill={i < (booking.review?.rating || 0) ? "currentColor" : "none"} 
+                />
+            ))}
           </div>
-          <p className="text-slate-600 italic font-medium">"{booking.review.comment}"</p>
+          <p className="text-slate-600 italic font-medium">"{booking.review?.comment}"</p>
         </div>
       )}
     </div>
